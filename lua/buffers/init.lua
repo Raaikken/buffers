@@ -1,25 +1,25 @@
 local M = {}
 
 M.buffer_order = {}
+M.border = "shadow"
+M.win_height = 12
+M.win_width = 80
 
 local function create_floating_window()
-	local width = vim.api.nvim_get_option("columns")
-	local height = vim.api.nvim_get_option("lines")
+	local width = vim.api.nvim_get_option_value("columns", {})
+	local height = vim.api.nvim_get_option_value("lines", {})
 
-	local win_height = math.ceil(height * 0.33)
-	local win_width = math.ceil(width * 0.66)
-
-	local row = math.ceil((height - win_height) / 2 - 1)
-	local col = math.ceil((width - win_width) / 2)
+	local row = 10
+	local col = math.ceil((width - M.win_width) / 2)
 
 	local opts = {
 		style = "minimal",
 		relative = "editor",
-		width = win_width,
-		height = win_height,
+		width = M.win_width,
+		height = M.win_height,
 		row = row,
 		col = col,
-		border = "rounded",
+		border = M.border,
 		title = " Buffers ",
 		title_pos = "center",
 	}
@@ -83,7 +83,7 @@ end
 local function format_buffer_line(buffer, index)
 	local indicator = buffer.current and "●" or "○"
 	local modified = buffer.modified and " ●" or ""
-	local line = string.format("%s %d: %2d │ %s%s", indicator, index, buffer.bufnr, buffer.filename, modified)
+	local line = string.format("%s %d │ %s%s", indicator, index, buffer.filename, modified)
 	return line
 end
 
@@ -260,6 +260,10 @@ function M.setup(opts)
 	vim.api.nvim_create_user_command("BufferFloat", M.show_buffers, {})
 
 	vim.keymap.set("n", "<leader><leader>", M.show_buffers, { desc = "Show floating buffer list" })
+
+	if opts.border then
+		M.border = opts.border
+	end
 
 	if opts.enable_numbered_keymaps ~= false then
 		for i = 1, 5 do
