@@ -88,6 +88,8 @@ local function format_buffer_line(buffer, index)
 end
 
 local function refresh_buffer_display(buf, win, buffers, original_current_buf)
+	local cursor_pos = vim.api.nvim_win_get_cursor(win)
+
 	for _, buffer in ipairs(buffers) do
 		buffer.current = buffer.bufnr == original_current_buf
 	end
@@ -96,8 +98,6 @@ local function refresh_buffer_display(buf, win, buffers, original_current_buf)
 	for i, buffer in ipairs(buffers) do
 		table.insert(lines, format_buffer_line(buffer, i))
 	end
-
-	local cursor_pos = vim.api.nvim_win_get_cursor(win)
 
 	vim.bo[buf].readonly = false
 	vim.bo[buf].modifiable = true
@@ -111,6 +111,7 @@ local function refresh_buffer_display(buf, win, buffers, original_current_buf)
 	if cursor_pos[1] > max_line then
 		cursor_pos[1] = max_line
 	end
+
 	vim.api.nvim_win_set_cursor(win, cursor_pos)
 end
 
@@ -181,6 +182,15 @@ function M.show_buffers()
 
 	refresh_buffer_display(buf, win, buffers, original_current_buf)
 
+	local target = 1
+	for i, buffer in ipairs(buffers) do
+		if buffer.current then
+			target = i
+			break
+		end
+	end
+	vim.api.nvim_win_set_cursor(win, { target, 0 })
+
 	local function close_window()
 		vim.api.nvim_win_close(win, true)
 	end
@@ -195,20 +205,24 @@ function M.show_buffers()
 
 	local function delete_buffer()
 		local line = vim.api.nvim_win_get_cursor(win)[1]
-		if buffers[line] then
-			local bufnr_to_delete = buffers[line].bufnr
+		local bufnr_to_delete = buffers[line].bufnr
 
-			for i, bufnr in ipairs(M.buffer_order) do
-				if bufnr == bufnr_to_delete then
-					table.remove(M.buffer_order, i)
-					break
+		for i, bufnr in ipairs(M.buffer_order) do
+			if bufnr == bufnr_to_delete then
+				table.remove(M.buffer_order, i)
+				if original_current_buf == bufnr_to_delete then
+					original_current_buf = M.buffer_order[math.min(i, #M.buffer_order)]
 				end
+				break
 			end
-
-			vim.api.nvim_buf_delete(bufnr_to_delete, { force = false })
-			close_window()
-			M.show_buffers()
 		end
+
+		vim.bo[bufnr_to_delete].buflisted = false
+		vim.api.nvim_buf_delete(bufnr_to_delete, { force = false })
+		Snacks.bufdelete.delete(bufnr_to_delete)
+
+		buffers = get_buffer_list(original_current_buf)
+		refresh_buffer_display(buf, win, buffers, original_current_buf)
 	end
 
 	local function move_up()
