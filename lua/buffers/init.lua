@@ -217,8 +217,8 @@ function M.show_buffers()
 			end
 		end
 
-		vim.bo[bufnr_to_delete].buflisted = false
-		vim.api.nvim_buf_delete(bufnr_to_delete, { force = false })
+		-- vim.bo[bufnr_to_delete].buflisted = false
+		-- vim.api.nvim_buf_delete(bufnr_to_delete, { force = false })
 		Snacks.bufdelete.delete(bufnr_to_delete)
 
 		buffers = get_buffer_list(original_current_buf)
